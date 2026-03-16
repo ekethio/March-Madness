@@ -251,13 +251,14 @@ input.n-inp.dirty{border-color:var(--teal);background:#f0fdf4;font-weight:600;}
     <div class="ed-toolbar">
       <input class="ed-search" id="edSearch" placeholder="Search team..." oninput="filterEditor()">
       <button class="ed-btn" onclick="resetRatings()">Reset All to Default</button>
+      <button class="ed-btn" onclick="downloadCSV()" style="border-color:#0d7377;color:#0d7377;">⬇ Download CSV</button>
       <button class="ed-btn save" onclick="saveAndApply()">Save &amp; Apply ↗</button>
     </div>
     <div class="ed-tbl-wrap">
       <table class="ed-tbl">
         <thead><tr>
           <th>Team</th><th>Conf</th><th>Seed</th>
-          <th>OrtG</th><th>DrtG</th><th>Tempo</th>
+          <th>OrtG</th><th>DrtG</th><th>Tempo</th><th>Net Rtg</th>
         </tr></thead>
         <tbody id="edBody"></tbody>
       </table>
@@ -279,11 +280,11 @@ const STORAGE_KEY = 'marchlines_ratings_v1';
 //  Blended values — single source of truth
 // ═══════════════════════════
 const DEFAULTS = {
-  "Duke":          [128.07,89.96,65.55,"ACC",1,"East"],
-  "Michigan":      [127.11,90.03,71.06,"B10",1,"Midwest"],
-  "Arizona":       [127.31,90.70,69.91,"B12",1,"West"],
+  "Duke":          [128.97,89.56,65.55,"ACC",1,"East"],
+  "Michigan":      [128.01,89.73,71.06,"B10",1,"Midwest"],
+  "Arizona":       [127.71,90.3,69.91,"B12",1,"West"],
   "Florida":       [125.81,91.98,70.45,"SEC",1,"South"],
-  "Houston":       [125.14,91.90,63.31,"B12",2,"South"],
+  "Houston":       [126.04,91.4,63.71,"B12",2,"South"],
   "Illinois":      [131.57,98.66,65.61,"B10",3,"South"],
   "Iowa St.":      [123.79,92.02,66.73,"B12",2,"West"],
   "Purdue":        [132.44,100.33,64.42,"B10",2,"West"],
@@ -312,7 +313,6 @@ const DEFAULTS = {
   "Kentucky":      [120.20,99.50,68.31,"SEC",7,"Midwest"],
   "Cincinnati":    [111.75,93.69,67.58,"B12",11,"West"],
   "BYU":           [125.12,103.27,69.84,"B12",6,"West"],
-  "Indiana":       [121.12,102.65,66.15,"B10",9,"South"],
   "Miami FL":      [121.24,101.09,67.77,"ACC",7,"West"],
   "Villanova":     [120.00,100.47,65.08,"BE",8,"West"],
   "Georgia":       [124.51,104.48,71.72,"SEC",8,"Midwest"],
@@ -331,11 +331,9 @@ const DEFAULTS = {
   "Akron":         [117.98,105.67,70.31,"MAC",12,"Midwest"],
   "McNeese St.":   [113.73,101.98,66.17,"Slnd",12,"South"],
   "Oklahoma St.":  [119.31,107.37,72.09,"B12",6,"South"],
-  "Belmont":       [120.42,108.71,68.94,"MVC",14,"South"],
-  "Dayton":        [110.33,99.90,66.96,"A10",3,"South"],
   "Miami OH":      [116.75,108.05,69.92,"MAC",11,"Midwest"],
   "Hofstra":       [113.89,105.03,64.70,"CAA",13,"Midwest"],
-  "High Point":    [116.34,108.06,69.90,"BSth",12,"West"],
+  "High Point":    [116.86,107.66,69.9,"BSth",12,"West"],
   "Cal Baptist":   [107.69,101.11,65.87,"WAC",13,"East"],
   "Seattle":       [102.39,97.07,67.66,"WCC",11,"West"],
   "N. Dakota St.": [111.58,106.32,66.33,"Sum",14,"East"],
@@ -344,17 +342,17 @@ const DEFAULTS = {
   "Troy":          [110.71,109.02,64.99,"SB",13,"South"],
   "Kennesaw St.":  [110.70,109.80,71.23,"CUSA",14,"West"],
   "UMBC":          [107.88,109.57,66.11,"AE",16,"Midwest"],
-  "Siena":         [107.17,109.08,64.61,"MAAC",16,"East"],
-  "Furman":        [107.20,109.20,65.87,"SC",15,"East"],
-  "Queens":        [115.22,117.14,69.55,"ASun",15,"West"],
-  "Howard":        [103.27,106.27,69.03,"MEAC",16,"Midwest"],
-  "Tennessee St.": [108.45,111.42,70.17,"OVC",15,"Midwest"],
-  "LIU":           [104.62,109.67,67.81,"NEC",16,"West"],
-  "Prairie View":  [101.31,111.65,70.89,"SWAC",16,"South"],
+  "Siena":         [106.42,110.42,64.61,"MAAC",16,"East"],
+  "Furman":        [106.45,109.95,65.87,"SC",15,"East"],
+  "Queens":        [114.47,117.89,69.55,"ASun",15,"West"],
+  "Howard":        [102.52,107.02,69.03,"MEAC",16,"Midwest"],
+  "Tennessee St.": [107.7,112.17,70.17,"OVC",15,"Midwest"],
+  "LIU":           [103.87,110.42,67.81,"NEC",16,"West"],
+  "Prairie View":  [100.56,112.4,70.89,"SWAC",16,"South"],
   "Penn":          [106.99,105.66,69.01,"Ivy",14,"South"],
-  "Lehigh":        [102.64,112.94,66.89,"Pat",16,"South"],
-  "Oklahoma":      [124.68,105.83,66.18,"SEC",5,"South"],
-  "Auburn":        [124.50,105.80,67.28,"SEC",11,"South"],
+  "Lehigh":        [101.89,113.69,66.89,"Pat",16,"South"],
+  "Idaho":         [106.26,108.56,67.5,"BSky",15,"South"],
+  "Idaho":          [106.26,108.56,67.5,"BSky",15,"South"],
 };
 
 // Live ratings — will be overwritten by localStorage if saved
@@ -387,6 +385,7 @@ function getR(name) {
 //  GAMES LIST
 // ═══════════════════════════
 const GAMES = [
+  // ── EAST ──────────────────────────────────────────
   {t1:"Duke",s1:1,t2:"Siena",s2:16,region:"East",day:"Thu",site:"Greenville, SC"},
   {t1:"Ohio St.",s1:8,t2:"TCU",s2:9,region:"East",day:"Thu",site:"Greenville, SC"},
   {t1:"Louisville",s1:6,t2:"South Florida",s2:11,region:"East",day:"Thu",site:"Buffalo, NY"},
@@ -395,30 +394,33 @@ const GAMES = [
   {t1:"Kansas",s1:4,t2:"Cal Baptist",s2:13,region:"East",day:"Fri",site:"San Diego, CA"},
   {t1:"UCLA",s1:7,t2:"UCF",s2:10,region:"East",day:"Fri",site:"Philadelphia, PA"},
   {t1:"Connecticut",s1:2,t2:"Furman",s2:15,region:"East",day:"Fri",site:"Philadelphia, PA"},
+  // ── WEST ──────────────────────────────────────────
   {t1:"Arizona",s1:1,t2:"LIU",s2:16,region:"West",day:"Thu",site:"Portland, OR"},
   {t1:"Villanova",s1:8,t2:"Utah St.",s2:9,region:"West",day:"Thu",site:"Portland, OR"},
   {t1:"Arkansas",s1:4,t2:"Hawaii",s2:13,region:"West",day:"Thu",site:"Portland, OR"},
-  {t1:"BYU",s1:6,t2:"Texas",s2:11,region:"West",day:"Thu",site:"Portland, OR",note:"11-seed: TX won First Four"},
+  {t1:"BYU",s1:6,t2:"Texas",s2:11,region:"West",day:"Thu",site:"Portland, OR",note:"11: TX won First Four vs NC State"},
   {t1:"Wisconsin",s1:5,t2:"High Point",s2:12,region:"West",day:"Fri",site:"Oklahoma City, OK"},
   {t1:"Gonzaga",s1:3,t2:"Kennesaw St.",s2:14,region:"West",day:"Fri",site:"Oklahoma City, OK"},
   {t1:"Miami FL",s1:7,t2:"Missouri",s2:10,region:"West",day:"Fri",site:"St. Louis, MO"},
   {t1:"Purdue",s1:2,t2:"Queens",s2:15,region:"West",day:"Fri",site:"St. Louis, MO"},
-  {t1:"Michigan",s1:1,t2:"UMBC",s2:16,region:"Midwest",day:"Thu",site:"Buffalo, NY",note:"16-seed: UMBC/Howard TBD"},
+  // ── MIDWEST ───────────────────────────────────────
+  {t1:"Michigan",s1:1,t2:"UMBC",s2:16,region:"Midwest",day:"Thu",site:"Buffalo, NY",note:"16: UMBC won First Four vs Howard"},
   {t1:"Georgia",s1:8,t2:"Saint Louis",s2:9,region:"Midwest",day:"Thu",site:"Buffalo, NY"},
-  {t1:"Tennessee",s1:6,t2:"Miami OH",s2:11,region:"Midwest",day:"Thu",site:"Oklahoma City, OK",note:"11-seed: Miami OH/SMU TBD"},
+  {t1:"Tennessee",s1:6,t2:"Miami OH",s2:11,region:"Midwest",day:"Thu",site:"Oklahoma City, OK",note:"11: Miami OH won First Four vs SMU"},
   {t1:"Virginia",s1:3,t2:"Wright St.",s2:14,region:"Midwest",day:"Thu",site:"Oklahoma City, OK"},
   {t1:"Texas Tech",s1:5,t2:"Akron",s2:12,region:"Midwest",day:"Fri",site:"St. Louis, MO"},
   {t1:"Alabama",s1:4,t2:"Hofstra",s2:13,region:"Midwest",day:"Fri",site:"St. Louis, MO"},
   {t1:"Kentucky",s1:7,t2:"Santa Clara",s2:10,region:"Midwest",day:"Fri",site:"St. Louis, MO"},
   {t1:"Iowa St.",s1:2,t2:"Tennessee St.",s2:15,region:"Midwest",day:"Fri",site:"St. Louis, MO"},
-  {t1:"Florida",s1:1,t2:"Prairie View",s2:16,region:"South",day:"Thu",site:"Tampa, FL",note:"16-seed: PV won First Four"},
+  // ── SOUTH ─────────────────────────────────────────
+  {t1:"Florida",s1:1,t2:"Prairie View",s2:16,region:"South",day:"Thu",site:"Tampa, FL",note:"16: PV won First Four vs Lehigh"},
   {t1:"Clemson",s1:8,t2:"Iowa",s2:9,region:"South",day:"Thu",site:"Tampa, FL"},
-  {t1:"Oklahoma St.",s1:6,t2:"VCU",s2:11,region:"South",day:"Thu",site:"Tampa, FL"},
-  {t1:"Dayton",s1:3,t2:"Tulsa",s2:14,region:"South",day:"Thu",site:"Tampa, FL"},
-  {t1:"Vanderbilt",s1:5,t2:"McNeese St.",s2:12,region:"South",day:"Fri",site:"Philadelphia, PA"},
-  {t1:"Nebraska",s1:4,t2:"Troy",s2:13,region:"South",day:"Fri",site:"Philadelphia, PA"},
-  {t1:"Houston",s1:2,t2:"Indiana",s2:9,region:"South",day:"Fri",site:"Tampa, FL"},
-  {t1:"North Carolina",s1:6,t2:"Oklahoma",s2:5,region:"South",day:"Fri",site:"Philadelphia, PA"},
+  {t1:"North Carolina",s1:6,t2:"VCU",s2:11,region:"South",day:"Thu",site:"Greenville, SC"},
+  {t1:"Illinois",s1:3,t2:"Penn",s2:14,region:"South",day:"Thu",site:"Greenville, SC"},
+  {t1:"Vanderbilt",s1:5,t2:"McNeese St.",s2:12,region:"South",day:"Fri",site:"Oklahoma City, OK"},
+  {t1:"Nebraska",s1:4,t2:"Troy",s2:13,region:"South",day:"Fri",site:"Oklahoma City, OK"},
+  {t1:"Saint Mary's",s1:7,t2:"Texas A&M",s2:10,region:"South",day:"Fri",site:"Oklahoma City, OK"},
+  {t1:"Houston",s1:2,t2:"Idaho",s2:15,region:"South",day:"Fri",site:"Oklahoma City, OK"},
 ];
 
 // ═══════════════════════════
@@ -584,11 +586,19 @@ let edFilter='';
 function renderEditor() {
   let teams=Object.keys(DEFAULTS);
   if(edFilter) teams=teams.filter(n=>n.toLowerCase().includes(edFilter));
-  teams.sort();
+  // Sort by net rating descending
+  teams.sort((a,b)=>{
+    const dA=getR(a), dB=getR(b);
+    return (dB[0]-dB[1]) - (dA[0]-dA[1]);
+  });
   document.getElementById('edBody').innerHTML=teams.map(name=>{
     const d=getR(name);
     const def=DEFAULTS[name];
+    const net=d[0]-d[1];
     const mod0=Math.abs(d[0]-def[0])>0.01, mod1=Math.abs(d[1]-def[1])>0.01, mod2=Math.abs(d[2]-def[2])>0.01;
+    const netCol=net>=0
+      ?`<span style="color:var(--green);font-weight:600;">+${net.toFixed(1)}</span>`
+      :`<span style="color:var(--red);font-weight:600;">${net.toFixed(1)}</span>`;
     return`<tr>
       <td class="td-name">${name}</td>
       <td class="td-conf">${def[3]}</td>
@@ -596,6 +606,7 @@ function renderEditor() {
       <td><input class="n-inp${mod0?' dirty':''}" data-n="${name}" data-i="0" type="number" step="0.1" value="${d[0].toFixed(2)}" oninput="onEdit(this)"></td>
       <td><input class="n-inp${mod1?' dirty':''}" data-n="${name}" data-i="1" type="number" step="0.1" value="${d[1].toFixed(2)}" oninput="onEdit(this)"></td>
       <td><input class="n-inp${mod2?' dirty':''}" data-n="${name}" data-i="2" type="number" step="0.1" value="${d[2].toFixed(2)}" oninput="onEdit(this)"></td>
+      <td style="font-family:var(--mono);font-size:11px;text-align:right;">${netCol}</td>
     </tr>`;
   }).join('');
 }
@@ -612,6 +623,21 @@ function onEdit(inp) {
 }
 
 function filterEditor() { edFilter=document.getElementById('edSearch').value.toLowerCase(); renderEditor(); }
+
+function downloadCSV() {
+  const rows = [['Team','Conf','Seed','Region','OrtG','DrtG','Tempo','NetRtg']];
+  Object.keys(DEFAULTS).sort().forEach(name => {
+    const d = getR(name);
+    const net = (d[0] - d[1]).toFixed(2);
+    rows.push([name, d[3], d[4], d[5], d[0].toFixed(2), d[1].toFixed(2), d[2].toFixed(2), net]);
+  });
+  const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'marchlines-2026-ratings.csv';
+  a.click();
+}
+
 
 function saveAndApply() {
   const ok=saveR();
